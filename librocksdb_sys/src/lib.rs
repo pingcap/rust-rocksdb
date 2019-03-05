@@ -38,6 +38,7 @@ pub enum DBWriteBatch {}
 pub enum DBComparator {}
 pub enum DBFlushOptions {}
 pub enum DBCompactionFilter {}
+pub enum DBCompactionGuard {}
 pub enum EnvOptions {}
 pub enum SstFileWriter {}
 pub enum ExternalSstFileInfo {}
@@ -398,6 +399,10 @@ extern "C" {
     pub fn crocksdb_options_set_compaction_filter(
         options: *mut Options,
         filter: *mut DBCompactionFilter,
+    );
+    pub fn crocksdb_options_set_compaction_guard(
+        options: *mut Options,
+        guard: *mut DBCompactionGuard,
     );
     pub fn crocksdb_options_set_create_if_missing(options: *mut Options, v: bool);
     pub fn crocksdb_options_set_max_open_files(options: *mut Options, files: c_int);
@@ -1151,6 +1156,22 @@ extern "C" {
         ignore_snapshot: bool,
     );
     pub fn crocksdb_compactionfilter_destroy(filter: *mut DBCompactionFilter);
+    // Compaction guard
+    pub fn crocksdb_compactionguard_create(
+        state: *mut c_void,
+        destructor: extern "C" fn(*mut c_void),
+        clean_guard: extern "C" fn(*mut c_void),
+        get_gurads_in_range: extern "C" fn(
+            *mut c_void,
+            *const u8,
+            u32,
+            *const u8,
+            u32,
+            *mut u32,
+            *mut *mut u32,
+        ) -> *mut *mut u8,
+    ) -> *mut DBCompactionGuard;
+    pub fn crocksdb_compactionguard_destory(guard: *mut DBCompactionGuard);
 
     // Env
     pub fn crocksdb_default_env_create() -> *mut DBEnv;

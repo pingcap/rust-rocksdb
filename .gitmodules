@@ -1,4 +1,4 @@
 [submodule "rocksdb"]
 	path = librocksdb_sys/rocksdb
-	url = https://github.com/pingcap/rocksdb.git
-	branch = titan-5.15
+	url = https://github.com/zhangjinpeng1987/rocksdb.git
+	branch = guards

@@ -21,6 +21,7 @@ pub extern crate librocksdb_sys;
 extern crate tempdir;
 
 pub use compaction_filter::CompactionFilter;
+pub use compaction_guard::CompactionGuard;
 pub use event_listener::{
     CompactionJobInfo, EventListener, FlushJobInfo, IngestionInfo, WriteStallInfo,
 };
@@ -54,6 +55,7 @@ pub use table_properties_collector_factory::TablePropertiesCollectorFactory;
 pub use titan::{TitanBlobIndex, TitanDBOptions};
 
 mod compaction_filter;
+mod compaction_guard;
 pub mod comparator;
 mod event_listener;
 pub mod merge_operator;

@@ -14,6 +14,7 @@
 //
 
 use compaction_filter::{new_compaction_filter, CompactionFilter, CompactionFilterHandle};
+use compaction_guard::{new_compaction_gurad, CompactionGuard, CompactionGuardHandle};
 use comparator::{self, compare_callback, ComparatorCallback};
 use crocksdb_ffi::{
     self, DBBlockBasedTableOptions, DBBottommostLevelCompaction, DBCompactOptions,
@@ -1006,6 +1007,7 @@ pub struct ColumnFamilyOptions {
     pub titan_inner: *mut DBTitanDBOptions,
     env: Option<Arc<Env>>,
     filter: Option<CompactionFilterHandle>,
+    guard: Option<CompactionGuardHandle>,
 }
 
 impl Drop for ColumnFamilyOptions {
@@ -1032,6 +1034,7 @@ impl Default for ColumnFamilyOptions {
                 titan_inner: ptr::null_mut::<DBTitanDBOptions>(),
                 env: None,
                 filter: None,
+                guard: None,
             }
         }
     }
@@ -1052,6 +1055,7 @@ impl Clone for ColumnFamilyOptions {
                 titan_inner: titan_opts,
                 env: self.env.clone(),
                 filter: None,
+                guard: None,
             }
         }
     }
@@ -1072,6 +1076,7 @@ impl ColumnFamilyOptions {
             titan_inner: ptr::null_mut::<DBTitanDBOptions>(),
             env: None,
             filter: None,
+            guard: None,
         }
     }
 
@@ -1127,6 +1132,17 @@ impl ColumnFamilyOptions {
             crocksdb_ffi::crocksdb_options_set_compaction_filter(
                 self.inner,
                 self.filter.as_ref().unwrap().inner,
+            );
+            Ok(())
+        }
+    }
+
+    pub fn set_compaction_guard(&mut self, guard: Arc<CompactionGuard>) -> Result<(), String> {
+        unsafe {
+            self.guard = Some(new_compaction_gurad(guard)?);
+            crocksdb_ffi::crocksdb_options_set_compaction_guard(
+                self.inner,
+                self.guard.as_ref().unwrap().inner,
             );
             Ok(())
         }

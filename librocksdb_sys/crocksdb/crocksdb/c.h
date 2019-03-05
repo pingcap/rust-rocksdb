@@ -80,6 +80,7 @@ typedef struct crocksdb_compactionfiltercontext_t
     crocksdb_compactionfiltercontext_t;
 typedef struct crocksdb_compactionfilterfactory_t
     crocksdb_compactionfilterfactory_t;
+typedef struct crocksdb_compactionguard_t crocksdb_compactionguard_t;
 typedef struct crocksdb_comparator_t      crocksdb_comparator_t;
 typedef struct crocksdb_env_t             crocksdb_env_t;
 typedef struct crocksdb_fifo_compaction_options_t crocksdb_fifo_compaction_options_t;
@@ -801,6 +802,8 @@ extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_compaction_filter(
     crocksdb_options_t*, crocksdb_compactionfilter_t*);
 extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_compaction_filter_factory(
     crocksdb_options_t*, crocksdb_compactionfilterfactory_t*);
+extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_compaction_guard(
+    crocksdb_options_t*, crocksdb_compactionguard_t*);
 extern C_ROCKSDB_LIBRARY_API void crocksdb_options_compaction_readahead_size(
     crocksdb_options_t*, size_t);
 extern C_ROCKSDB_LIBRARY_API void crocksdb_options_set_comparator(
@@ -1163,6 +1166,17 @@ crocksdb_compactionfilterfactory_create(
     const char* (*name)(void*));
 extern C_ROCKSDB_LIBRARY_API void crocksdb_compactionfilterfactory_destroy(
     crocksdb_compactionfilterfactory_t*);
+
+/* CompactionGuard */
+
+extern C_ROCKSDB_LIBRARY_API crocksdb_compactionguard_t*
+crocksdb_compactionguard_create(
+    void* state, void (*destructor)(void*), void (*clean_guard)(void*),
+    char** get_guards_in_range(void*, const char* start, uint32_t start_len,
+                               const char* end, uint32_t end_len,
+                               uint32_t* total, uint32_t** lens));
+extern C_ROCKSDB_LIBRARY_API void crocksdb_compactionguard_destory(
+    crocksdb_compactionguard_t*);
 
 /* Comparator */
 
