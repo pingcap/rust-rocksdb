@@ -87,9 +87,15 @@ fn build_cstring_list(str_list: &[&str]) -> Vec<CString> {
         .collect()
 }
 
+struct CFHandleInfo {
+    pub name: String,
+    pub handle: CFHandle,
+}
+
 pub struct DB {
     inner: *mut DBInstance,
     cfs: BTreeMap<String, CFHandle>,
+    cfs_handle: Vec<CFHandleInfo>,
     path: String,
     opts: DBOptions,
     _cf_opts: Vec<ColumnFamilyOptions>,
@@ -612,20 +618,42 @@ impl DB {
             return Err(ERR_NULL_DB_ONINIT.to_owned());
         }
 
-        let cfs = names
-            .into_iter()
-            .zip(cf_handles)
-            .map(|(s, h)| (s.to_owned(), CFHandle { inner: h }))
-            .collect();
+        if names.len() > 8 {
+            let cfs = names
+                .into_iter()
+                .zip(cf_handles)
+                .map(|(s, h)| (s.to_owned(), CFHandle { inner: h }))
+                .collect();
 
-        Ok(DB {
-            inner: db,
-            cfs: cfs,
-            path: path.to_owned(),
-            opts: opts,
-            _cf_opts: options,
-            readonly: readonly,
-        })
+            Ok(DB {
+                inner: db,
+                cfs: cfs,
+                cfs_handle: vec![],
+                path: path.to_owned(),
+                opts: opts,
+                _cf_opts: options,
+                readonly: readonly,
+            })
+        } else {
+            let cfs_handle = names
+                .into_iter()
+                .zip(cf_handles)
+                .map(|(s, h)| CFHandleInfo {
+                    name: s.to_owned(),
+                    handle: CFHandle { inner: h },
+                })
+                .collect();
+
+            Ok(DB {
+                inner: db,
+                cfs: BTreeMap::new(),
+                cfs_handle,
+                path: path.to_owned(),
+                opts: opts,
+                _cf_opts: options,
+                readonly: readonly,
+            })
+        }
     }
 
     pub fn destroy(opts: &DBOptions, path: &str) -> Result<(), String> {
@@ -787,17 +815,64 @@ impl DB {
             };
             let handle = CFHandle { inner: cf_handler };
             self._cf_opts.push(cfd.options);
-            Ok(match self.cfs.entry(cfd.name.to_owned()) {
-                Entry::Occupied(mut e) => {
-                    e.insert(handle);
-                    e.into_mut()
+
+            if !self.cfs_handle.is_empty() {
+                let pos = self.cf_pos(cfd.name);
+                if pos.is_some() {
+                    let pos = pos.unwrap();
+                    self.cfs_handle[pos].handle = handle;
+                    Ok(&self.cfs_handle[pos].handle)
+                } else {
+                    self.cfs_handle.push(CFHandleInfo {
+                        name: cfd.name.to_owned(),
+                        handle,
+                    });
+                    Ok(&self.cfs_handle[self.cfs_handle.len() - 1].handle)
                 }
-                Entry::Vacant(e) => e.insert(handle),
-            })
+            } else {
+                Ok(match self.cfs.entry(cfd.name.to_owned()) {
+                    Entry::Occupied(mut e) => {
+                        e.insert(handle);
+                        e.into_mut()
+                    }
+                    Entry::Vacant(e) => e.insert(handle),
+                })
+            }
+        }
+    }
+
+    fn cf_pos(&self, name: &str) -> Option<usize> {
+        let mut found = false;
+        let mut pos = 0;
+        for (i, info) in self.cfs_handle.iter().enumerate() {
+            if name == info.name {
+                found = true;
+                pos = i;
+                break;
+            }
+        }
+        if found {
+            Some(pos)
+        } else {
+            None
         }
     }
 
     pub fn drop_cf(&mut self, name: &str) -> Result<(), String> {
+        if !self.cfs_handle.is_empty() {
+            let pos = self.cf_pos(name);
+            if pos.is_some() {
+                let pos = pos.unwrap();
+                let cf = self.cfs_handle.swap_remove(pos);
+                unsafe {
+                    ffi_try!(crocksdb_drop_column_family(self.inner, cf.handle.inner));
+                }
+                return Ok(());
+            } else {
+                return Err(format!("Invalid column family: {}", name).clone());
+            }
+        }
+
         let cf = self.cfs.remove(name);
         if cf.is_none() {
             return Err(format!("Invalid column family: {}", name).clone());
@@ -811,12 +886,30 @@ impl DB {
     }
 
     pub fn cf_handle(&self, name: &str) -> Option<&CFHandle> {
-        self.cfs.get(name)
+        if !self.cfs_handle.is_empty() {
+            // Find in Vec
+            let pos = self.cf_pos(name);
+            if pos.is_some() {
+                Some(&self.cfs_handle[pos.unwrap()].handle)
+            } else {
+                None
+            }
+        } else {
+            // Find in BTreeMap
+            self.cfs.get(name)
+        }
     }
 
     /// get all column family names, including 'default'.
     pub fn cf_names(&self) -> Vec<&str> {
-        self.cfs.iter().map(|(k, _)| k.as_str()).collect()
+        if !self.cfs_handle.is_empty() {
+            self.cfs_handle
+                .iter()
+                .map(|info| info.name.as_str())
+                .collect()
+        } else {
+            self.cfs.iter().map(|(k, _)| k.as_str()).collect()
+        }
     }
 
     pub fn iter(&self) -> DBIterator<&DB> {
@@ -1815,6 +1908,7 @@ impl Drop for DB {
             self.sync_wal().unwrap_or_else(|_| {});
         }
         unsafe {
+            self.cfs_handle.clear();
             self.cfs.clear();
             crocksdb_ffi::crocksdb_close(self.inner);
         }
