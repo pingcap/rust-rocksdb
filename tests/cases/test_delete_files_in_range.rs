@@ -14,7 +14,10 @@
 use std::ops;
 
 use rand::{self, RngCore};
-use rocksdb::*;
+use rocksdb::{
+    CFHandle, ColumnFamilyOptions, CompactOptions, DBBottommostLevelCompaction, DBOptions, Range,
+    SeekKey, Writable, DB,
+};
 
 use super::tempdir_with_prefix;
 

@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crocksdb_ffi::{self, DBIOStatsContext, DBPerfContext};
+use crate::crocksdb_ffi::{self, DBIOStatsContext, DBPerfContext};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PerfLevel {
@@ -396,10 +396,9 @@ impl IOStatsContext {
 
 #[cfg(test)]
 mod test {
-    use rocksdb::{SeekKey, Writable, DB};
-    use rocksdb_options::{DBOptions, WriteOptions};
-
     use super::*;
+    use crate::rocksdb::{SeekKey, Writable, DB};
+    use crate::rocksdb_options::{DBOptions, WriteOptions};
     use crate::tempdir_with_prefix;
 
     #[test]

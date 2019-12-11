@@ -15,7 +15,10 @@ use std::fs;
 use std::io::{Read, Write};
 use std::sync::Arc;
 
-use rocksdb::*;
+use rocksdb::{
+    set_external_sst_file_global_seq_no, CFHandle, ColumnFamilyOptions, DBOptions, Env, EnvOptions,
+    IngestExternalFileOptions, MergeOperands, SeekKey, SstFileReader, SstFileWriter, Writable, DB,
+};
 
 use super::tempdir_with_prefix;
 
@@ -458,10 +461,10 @@ fn test_set_external_sst_file_global_seq_no() {
     let seq_no = 1;
     // varify change seq_no
     let r1 = set_external_sst_file_global_seq_no(&db, &handle, sstfile_str, seq_no);
-    assert!(r1.unwrap() != seq_no);
+    assert_ne!(r1.unwrap(), seq_no);
     // varify that seq_no are equal
     let r2 = set_external_sst_file_global_seq_no(&db, &handle, sstfile_str, seq_no);
-    assert!(r2.unwrap() == seq_no);
+    assert_eq!(r2.unwrap(), seq_no);
 
     // change seq_no back to 0 so that it can be ingested
     assert!(set_external_sst_file_global_seq_no(&db, &handle, sstfile_str, 0).is_ok());

@@ -16,7 +16,10 @@ use std::sync::*;
 use std::thread;
 
 use rocksdb::rocksdb::Snapshot;
-use rocksdb::*;
+use rocksdb::{
+    BlockBasedOptions, ColumnFamilyOptions, DBIterator, DBOptions, Kv, ReadOptions, SeekKey,
+    SliceTransform, Writable, WriteOptions, DB,
+};
 
 use super::tempdir_with_prefix;
 
@@ -349,7 +352,7 @@ fn test_total_order_seek() {
         key_count = key_count + 1;
         iter.next();
     }
-    assert!(key_count == 3);
+    assert_eq!(key_count, 3);
 
     let mut iter = db.iter();
     // only iterate sst files and memtables that contain keys with the same prefix as b"k1"
@@ -362,7 +365,7 @@ fn test_total_order_seek() {
         key_count = key_count + 1;
         iter.next();
     }
-    assert!(key_count == 4);
+    assert_eq!(key_count, 4);
 
     let mut ropts = ReadOptions::new();
     ropts.set_total_order_seek(true);
@@ -375,7 +378,7 @@ fn test_total_order_seek() {
         key_count = key_count + 1;
         iter.next();
     }
-    assert!(key_count == 9);
+    assert_eq!(key_count, 9);
 }
 
 #[test]
@@ -409,10 +412,10 @@ fn test_fixed_suffix_seek() {
     let mut iter = db.iter();
     iter.seek(SeekKey::Key(b"k-24yfae-8"));
     let vec = prev_collect(&mut iter);
-    assert!(vec.len() == 2);
+    assert_eq!(vec.len(), 2);
 
     let mut iter = db.iter();
     iter.seek(SeekKey::Key(b"k-24yfa-9"));
     let vec = prev_collect(&mut iter);
-    assert!(vec.len() == 0);
+    assert_eq!(vec.len(), 0);
 }

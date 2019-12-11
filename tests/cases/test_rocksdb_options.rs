@@ -710,7 +710,7 @@ fn test_read_options() {
         key_count = key_count + 1;
         iter.next();
     }
-    assert!(key_count == 3);
+    assert_eq!(key_count, 3);
 }
 
 #[test]

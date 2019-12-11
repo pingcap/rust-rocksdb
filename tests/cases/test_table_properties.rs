@@ -220,9 +220,7 @@ struct BigTableFilter {
 
 impl BigTableFilter {
     pub fn new(max_entries: u64) -> BigTableFilter {
-        BigTableFilter {
-            max_entries: max_entries,
-        }
+        BigTableFilter { max_entries }
     }
 }
 

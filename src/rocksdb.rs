@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crocksdb_ffi::{
-    self, DBBackupEngine, DBCFHandle, DBCache, DBCompressionType, DBEnv, DBInstance, DBMapProperty,
-    DBPinnableSlice, DBSequentialFile, DBStatisticsHistogramType, DBStatisticsTickerType,
-    DBTitanDBOptions, DBWriteBatch,
-};
-use libc::{self, c_char, c_int, c_void, size_t};
-use librocksdb_sys::DBMemoryAllocator;
-use metadata::ColumnFamilyMetaData;
-use rocksdb_options::{
-    CColumnFamilyDescriptor, ColumnFamilyDescriptor, ColumnFamilyOptions, CompactOptions,
-    CompactionOptions, DBOptions, EnvOptions, FlushOptions, HistogramData,
-    IngestExternalFileOptions, LRUCacheOptions, ReadOptions, RestoreOptions, UnsafeSnap,
-    WriteOptions,
-};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::ffi::{CStr, CString};
@@ -38,7 +24,22 @@ use std::rc::Rc;
 use std::str::from_utf8;
 use std::sync::Arc;
 use std::{fs, ptr, slice};
-use table_properties::{TableProperties, TablePropertiesCollection};
+
+use libc::{self, c_char, c_int, c_void, size_t};
+
+use crate::crocksdb_ffi::{
+    self, DBBackupEngine, DBCFHandle, DBCache, DBCompressionType, DBEnv, DBInstance, DBMapProperty,
+    DBMemoryAllocator, DBPinnableSlice, DBSequentialFile, DBStatisticsHistogramType,
+    DBStatisticsTickerType, DBTitanDBOptions, DBWriteBatch,
+};
+use crate::metadata::ColumnFamilyMetaData;
+use crate::rocksdb_options::{
+    CColumnFamilyDescriptor, ColumnFamilyDescriptor, ColumnFamilyOptions, CompactOptions,
+    CompactionOptions, DBOptions, EnvOptions, FlushOptions, HistogramData,
+    IngestExternalFileOptions, LRUCacheOptions, ReadOptions, RestoreOptions, UnsafeSnap,
+    WriteOptions,
+};
+use crate::table_properties::{TableProperties, TablePropertiesCollection};
 
 pub struct CFHandle {
     inner: *mut DBCFHandle,
@@ -68,9 +69,7 @@ fn ensure_default_cf_exists<'a>(list: &mut Vec<ColumnFamilyDescriptor<'a>>, ttls
     }
 }
 
-fn split_descriptors<'a>(
-    list: Vec<ColumnFamilyDescriptor<'a>>,
-) -> (Vec<&'a str>, Vec<ColumnFamilyOptions>) {
+fn split_descriptors(list: Vec<ColumnFamilyDescriptor>) -> (Vec<&str>, Vec<ColumnFamilyOptions>) {
     let mut v1 = Vec::with_capacity(list.len());
     let mut v2 = Vec::with_capacity(list.len());
     for d in list {
@@ -355,7 +354,7 @@ impl<D: Deref<Target = DB>> Snapshot<D> {
         unsafe {
             Snapshot {
                 snap: db.unsafe_snap(),
-                db: db,
+                db,
             }
         }
     }
@@ -436,10 +435,7 @@ pub struct Range<'a> {
 
 impl<'a> Range<'a> {
     pub fn new(start_key: &'a [u8], end_key: &'a [u8]) -> Range<'a> {
-        Range {
-            start_key: start_key,
-            end_key: end_key,
-        }
+        Range { start_key, end_key }
     }
 }
 
@@ -658,11 +654,11 @@ impl DB {
 
         Ok(DB {
             inner: db,
-            cfs: cfs,
+            cfs,
             path: path.to_owned(),
-            opts: opts,
+            opts,
             _cf_opts: options,
-            readonly: readonly,
+            readonly,
         })
     }
 
@@ -2489,7 +2485,7 @@ pub struct SequentialFile {
 
 impl SequentialFile {
     fn new(inner: *mut DBSequentialFile) -> SequentialFile {
-        SequentialFile { inner: inner }
+        SequentialFile { inner }
     }
 
     pub fn skip(&mut self, n: usize) -> Result<(), String> {

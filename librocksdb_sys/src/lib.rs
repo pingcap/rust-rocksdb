@@ -14,9 +14,6 @@
 //
 
 extern crate bzip2_sys;
-extern crate libc;
-#[cfg(test)]
-extern crate tempfile;
 
 use std::ffi::CStr;
 use std::fmt;
@@ -2115,13 +2112,13 @@ extern "C" {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use libc::{self, c_void};
     use std::ffi::{CStr, CString};
     use std::{fs, ptr, slice};
 
+    use super::*;
+
     fn tempdir_with_prefix(prefix: &str) -> tempfile::TempDir {
-        tempfile::Builder::new().prefix(prefix).tempdir().expect()
+        tempfile::Builder::new().prefix(prefix).tempdir().expect("")
     }
 
     #[test]

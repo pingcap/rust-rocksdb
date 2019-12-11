@@ -14,7 +14,10 @@
 use std::fs;
 
 use crc::crc32::{self, Digest, Hasher32};
-use rocksdb::*;
+use rocksdb::{
+    CFHandle, ColumnFamilyOptions, DBOptions, EnvOptions, IngestExternalFileOptions, SeekKey,
+    SliceTransform, SstFileWriter, Writable, WriteBatch, DB,
+};
 
 use super::tempdir_with_prefix;
 
@@ -603,9 +606,7 @@ pub struct FixedSuffixSliceTransform {
 
 impl FixedSuffixSliceTransform {
     pub fn new(suffix_len: usize) -> FixedSuffixSliceTransform {
-        FixedSuffixSliceTransform {
-            suffix_len: suffix_len,
-        }
+        FixedSuffixSliceTransform { suffix_len }
     }
 }
 

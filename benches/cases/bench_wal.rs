@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::rocksdb::{ColumnFamilyOptions, DBOptions, WriteOptions, DB};
-use super::test::Bencher;
+use rocksdb::{ColumnFamilyOptions, DBOptions, WriteOptions, DB};
+use test::Bencher;
 
 fn run_bench_wal(b: &mut Bencher, name: &str, mut opts: DBOptions, wopts: WriteOptions) {
     let path = tempfile::Builder::new().prefix(name).tempdir().expect("");

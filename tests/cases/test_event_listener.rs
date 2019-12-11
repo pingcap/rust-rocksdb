@@ -14,7 +14,11 @@
 use std::sync::atomic::*;
 use std::sync::Arc;
 
-use rocksdb::*;
+use rocksdb::{
+    ColumnFamilyOptions, CompactionJobInfo, CompactionReason, DBBackgroundErrorReason, DBOptions,
+    EventListener, FlushJobInfo, IngestExternalFileOptions, IngestionInfo, Writable,
+    WriteStallCondition, WriteStallInfo, DB,
+};
 
 use super::tempdir_with_prefix;
 use super::test_ingest_external_file::gen_sst;
