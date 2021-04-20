@@ -32,6 +32,7 @@
 #include "rocksdb/merge_operator.h"
 #include "rocksdb/options.h"
 #include "rocksdb/perf_context.h"
+#include "rocksdb/persistent_cache.h"
 #include "rocksdb/rate_limiter.h"
 #include "rocksdb/slice_transform.h"
 #include "rocksdb/sst_dump_tool.h"
@@ -57,6 +58,7 @@
 #include "titan/options.h"
 #include "util/coding.h"
 #include "util/file_reader_writer.h"
+#include "utilities/persistent_cache/block_cache_tier.h"
 
 #if !defined(ROCKSDB_MAJOR) || !defined(ROCKSDB_MINOR) || \
     !defined(ROCKSDB_PATCH)
@@ -72,6 +74,7 @@ using rocksdb::BackupableDBOptions;
 using rocksdb::BackupEngine;
 using rocksdb::BackupInfo;
 using rocksdb::BlockBasedTableOptions;
+using rocksdb::BlockCacheTier;
 using rocksdb::BlockCipher;
 using rocksdb::Cache;
 using rocksdb::ColumnFamilyDescriptor;
@@ -120,6 +123,8 @@ using rocksdb::NewLRUCache;
 using rocksdb::Options;
 using rocksdb::PartitionerRequest;
 using rocksdb::PartitionerResult;
+using rocksdb::PersistentCache;
+using rocksdb::PersistentCacheConfig;
 using rocksdb::PinnableSlice;
 using rocksdb::RandomAccessFile;
 using rocksdb::Range;
@@ -312,6 +317,12 @@ struct crocksdb_lru_cache_options_t {
 };
 struct crocksdb_cache_t {
   shared_ptr<Cache> rep;
+};
+struct crocksdb_persistent_cache_options_t {
+  PersistentCacheConfig rep;
+};
+struct crocksdb_persistent_cache_t {
+  shared_ptr<PersistentCache> rep;
 };
 struct crocksdb_memory_allocator_t {
   shared_ptr<MemoryAllocator> rep;
@@ -1941,6 +1952,14 @@ void crocksdb_block_based_options_set_block_cache_compressed(
     crocksdb_cache_t* block_cache_compressed) {
   if (block_cache_compressed) {
     options->rep.block_cache_compressed = block_cache_compressed->rep;
+  }
+}
+
+void crocksdb_block_based_options_set_persistent_cache(
+    crocksdb_block_based_table_options_t* options,
+    crocksdb_persistent_cache_t* persistent_cache) {
+  if (persistent_cache) {
+    options->rep.persistent_cache = persistent_cache->rep;
   }
 }
 
@@ -3800,6 +3819,101 @@ void crocksdb_cache_destroy(crocksdb_cache_t* cache) { delete cache; }
 
 void crocksdb_cache_set_capacity(crocksdb_cache_t* cache, size_t capacity) {
   cache->rep->SetCapacity(capacity);
+}
+
+crocksdb_persistent_cache_options_t*
+crocksdb_persistent_cache_options_create() {
+  return new crocksdb_persistent_cache_options_t{
+      PersistentCacheConfig(nullptr, "", 0, nullptr)};
+}
+
+void crocksdb_persistent_cache_options_destroy(
+    crocksdb_persistent_cache_options_t* opt) {
+  delete opt;
+}
+
+void crocksdb_persistent_cache_options_set_env(
+    crocksdb_persistent_cache_options_t* opt, crocksdb_env_t* env) {
+  opt->rep.env = env->rep;
+}
+
+void crocksdb_persistent_cache_options_set_path(
+    crocksdb_persistent_cache_options_t* opt, const char* path) {
+  opt->rep.path = path;
+}
+
+void crocksdb_persistent_cache_options_set_log(
+    crocksdb_persistent_cache_options_t* opt, crocksdb_logger_t* log) {
+  opt->rep.log = log->rep;
+}
+
+void crocksdb_persistent_cache_options_set_enable_direct_reads(
+    crocksdb_persistent_cache_options_t* opt,
+    unsigned char enable_direct_reads) {
+  opt->rep.enable_direct_reads = enable_direct_reads;
+}
+
+void crocksdb_persistent_cache_options_set_enable_direct_writes(
+    crocksdb_persistent_cache_options_t* opt,
+    unsigned char enable_direct_writes) {
+  opt->rep.enable_direct_writes = enable_direct_writes;
+}
+
+void crocksdb_persistent_cache_options_set_cache_size(
+    crocksdb_persistent_cache_options_t* opt, uint64_t cache_size) {
+  opt->rep.cache_size = cache_size;
+}
+
+void crocksdb_persistent_cache_options_set_cache_file_size(
+    crocksdb_persistent_cache_options_t* opt, uint32_t cache_file_size) {
+  opt->rep.cache_file_size = cache_file_size;
+}
+
+void crocksdb_persistent_cache_options_set_writer_qdepth(
+    crocksdb_persistent_cache_options_t* opt, uint32_t writer_qdepth) {
+  opt->rep.writer_qdepth = writer_qdepth;
+}
+
+void crocksdb_persistent_cache_options_set_pipeline_writes(
+    crocksdb_persistent_cache_options_t* opt, unsigned char pipeline_writes) {
+  opt->rep.pipeline_writes = pipeline_writes;
+}
+
+void crocksdb_persistent_cache_options_set_max_write_pipeline_backlog_size(
+    crocksdb_persistent_cache_options_t* opt,
+    uint64_t max_write_pipeline_backlog_size) {
+  opt->rep.max_write_pipeline_backlog_size = max_write_pipeline_backlog_size;
+}
+
+void crocksdb_persistent_cache_options_set_write_buffer_size(
+    crocksdb_persistent_cache_options_t* opt, uint32_t write_buffer_size) {
+  opt->rep.write_buffer_size = write_buffer_size;
+}
+
+void crocksdb_persistent_cache_options_set_writer_dispatch_size(
+    crocksdb_persistent_cache_options_t* opt, uint64_t writer_dispatch_size) {
+  opt->rep.writer_dispatch_size = writer_dispatch_size;
+}
+
+void crocksdb_persistent_cache_options_set_is_compressed(
+    crocksdb_persistent_cache_options_t* opt, unsigned char is_compressed) {
+  opt->rep.is_compressed = is_compressed;
+}
+
+crocksdb_persistent_cache_t* crocksdb_persistent_cache_create(
+    crocksdb_persistent_cache_options_t* opt) {
+  crocksdb_persistent_cache_t* c = new crocksdb_persistent_cache_t;
+  c->rep = std::make_shared<BlockCacheTier>(opt->rep);
+  return c;
+}
+
+void crocksdb_persistent_cache_open(crocksdb_persistent_cache_t* cache,
+                                    char** errptr) {
+  SaveError(errptr, static_cast<BlockCacheTier*>(cache->rep.get())->Open());
+}
+
+void crocksdb_persistent_cache_destroy(crocksdb_persistent_cache_t* cache) {
+  delete cache;
 }
 
 crocksdb_env_t* crocksdb_default_env_create() {

@@ -181,6 +181,16 @@ pub struct crocksdb_cache_t {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct crocksdb_persistent_cache_options_t {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct crocksdb_persistent_cache_t {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct crocksdb_memory_allocator_t {
     _unused: [u8; 0],
 }
@@ -1567,6 +1577,12 @@ extern "C" {
     pub fn crocksdb_block_based_options_set_block_cache(
         options: *mut crocksdb_block_based_table_options_t,
         block_cache: *mut crocksdb_cache_t,
+    );
+}
+extern "C" {
+    pub fn crocksdb_block_based_options_set_persistent_cache(
+        options: *mut crocksdb_block_based_table_options_t,
+        persistent_cache: *mut crocksdb_persistent_cache_t,
     );
 }
 extern "C" {
@@ -3194,6 +3210,100 @@ extern "C" {
 }
 extern "C" {
     pub fn crocksdb_cache_set_capacity(cache: *mut crocksdb_cache_t, capacity: usize);
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_create() -> *mut crocksdb_persistent_cache_options_t;
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_destroy(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_env(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: *mut crocksdb_env_t,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_path(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: *const libc::c_char,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_log(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: *mut crocksdb_logger_t,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_enable_direct_reads(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: libc::c_uchar,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_enable_direct_writes(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: libc::c_uchar,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_cache_size(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: u64,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_cache_file_size(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: u32,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_writer_qdepth(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: u32,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_pipeline_writes(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: libc::c_uchar,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_max_write_pipeline_backlog_size(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: u64,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_write_buffer_size(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: u32,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_writer_dispatch_size(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: u64,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_options_set_is_compressed(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+        arg2: libc::c_uchar,
+    );
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_create(
+        arg1: *mut crocksdb_persistent_cache_options_t,
+    ) -> *mut crocksdb_persistent_cache_t;
+}
+extern "C" {
+    pub fn crocksdb_persistent_cache_destroy(cache: *mut crocksdb_persistent_cache_t);
 }
 extern "C" {
     pub fn crocksdb_default_env_create() -> *mut crocksdb_env_t;
